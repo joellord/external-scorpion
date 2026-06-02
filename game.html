@@ -217,7 +217,7 @@
     const resp = await fetch(`/api/result/${deliveryId}`);
     const data = await resp.json();
 
-    if (data.status === 'completed') {
+    if (data.status === 'complete') {
       clearInterval(pollTimer);
       showResult(data);
     }
