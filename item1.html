@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Challenge 1 – Click the Right Button</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: #f5f7fa;
+      padding: 2rem;
+    }
+    h1 { font-size: 1.4rem; margin-bottom: 0.5rem; color: #1a1a2e; }
+    p  { color: #555; margin-bottom: 2rem; font-size: 0.95rem; }
+    .buttons { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+    button {
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    button:hover { background: #e8f0fe; border-color: #4a90d9; }
+    button.correct { background: #d4edda; border-color: #28a745; }
+    button.wrong   { background: #f8d7da; border-color: #dc3545; }
+    #status {
+      margin-top: 1.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      min-height: 1.5rem;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <h1>Challenge 1 – Button Click</h1>
+  <p>Click the button that says <strong>"Submit"</strong>.</p>
+
+  <div class="buttons">
+    <button onclick="answer(this, 'Cancel')">Cancel</button>
+    <button onclick="answer(this, 'Submit')">Submit</button>
+    <button onclick="answer(this, 'Reset')">Reset</button>
+  </div>
+
+  <div id="status"></div>
+
+  <script src="https://unpkg.com/sei-messenger@1.2.1/dist/SeiMessenger.min.js"></script>
+  <script>
+    const messenger = new SeiMessenger();
+    let answered = false;
+
+    function answer(btn, label) {
+      if (answered) return;
+      answered = true;
+
+      const correct = label === 'Submit';
+      btn.classList.add(correct ? 'correct' : 'wrong');
+      document.getElementById('status').textContent = correct
+        ? '✓ Correct! Sending response…'
+        : '✗ Wrong answer. Sending response…';
+
+      // Disable all buttons
+      document.querySelectorAll('button').forEach(b => b.disabled = true);
+
+      // Send the candidate's response to Scorpion
+      messenger.sendMessage(label, { item: 'button-click', correct });
+    }
+  </script>
+</body>
+</html>
