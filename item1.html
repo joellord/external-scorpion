@@ -54,7 +54,9 @@
 
   <script src="https://unpkg.com/sei-messenger@1.2.1/dist/SeiMessenger.min.js"></script>
   <script>
-    const messenger = new SeiMessenger();
+    // Use origin query param if provided, otherwise '*' works for any Scorpion domain
+    const seiOrigin = new URLSearchParams(location.search).get('sei_origin') || '*';
+    const messenger = new SeiMessenger(seiOrigin);
     let answered = false;
 
     function answer(btn, label) {
