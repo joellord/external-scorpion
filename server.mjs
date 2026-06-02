@@ -18,7 +18,6 @@ const EXAM_ID = process.env.EXAM_ID || 'c34f1302-46fd-4f89-812a-7bf2d9c2ef39';
 const FORM_ID = process.env.FORM_ID || '71858e67-959c-49a5-b1d3-ec487a226243';
 
 // The game redirects here after Scorpion completes the delivery
-const RETURN_URL = process.env.RETURN_URL || 'http://localhost:4000/game.html';
 
 const headers = () => ({
   Authorization: AUTHORIZATION,
@@ -77,8 +76,7 @@ app.post('/api/start', async (req, res) => {
   }
 
   const { delivery_id, launch_token } = delivery;
-  const returnUrl = encodeURIComponent(`${RETURN_URL}?delivery_id=${delivery_id}`);
-  const launchUrl = `${SEI_URL}/take?launch_token=${launch_token}&redirect_url=${returnUrl}`;
+  const launchUrl = `${SEI_URL}/take?launch_token=${launch_token}`;
 
   console.log(`Created delivery ${delivery_id} for ${email}`);
   res.json({ deliveryId: delivery_id, launchUrl });
