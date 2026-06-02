@@ -8,7 +8,9 @@
     :root {
       --green: #00ed64;
       --dark:  #001e2b;
+      --mid:   #023430;
       --card:  #0f2b3d;
+      --border:#1e4a5c;
       --text:  #e8f1f2;
       --muted: #7a9eb1;
     }
@@ -25,24 +27,47 @@
       padding: 2rem;
     }
 
-    .screen { display: none; flex-direction: column; align-items: center; gap: 1.5rem; width: 100%; max-width: 720px; }
+    .screen { display: none; flex-direction: column; align-items: center; gap: 1.5rem; width: 100%; max-width: 640px; }
     .screen.active { display: flex; }
 
-    /* ── start ── */
+    /* ── typography ── */
     .logo { font-size: 3rem; }
     h1 { font-size: 2rem; color: var(--green); text-align: center; }
-    .subtitle { color: var(--muted); text-align: center; }
+    h2 { font-size: 1.4rem; color: var(--green); }
+    p  { color: var(--muted); line-height: 1.7; text-align: center; }
+    .story-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.75rem 2rem;
+      width: 100%;
+      text-align: left;
+    }
+    .story-box p { text-align: left; color: var(--text); }
+    .story-box .speaker {
+      font-size: 0.75rem;
+      color: var(--green);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+
+    /* ── form ── */
     .form-row { display: flex; gap: 1rem; width: 100%; }
     .form-group { display: flex; flex-direction: column; gap: 0.4rem; flex: 1; }
     .form-group label { font-size: 0.85rem; color: var(--muted); }
     .form-group input {
       padding: 0.65rem 1rem;
       border-radius: 6px;
-      border: 1px solid #1e4a5c;
+      border: 1px solid var(--border);
       background: var(--card);
       color: var(--text);
       font-size: 1rem;
     }
+    .form-group input:focus { outline: none; border-color: var(--green); }
+
+    /* ── buttons ── */
     .btn {
       padding: 0.75rem 2rem;
       border-radius: 8px;
@@ -51,14 +76,30 @@
       font-weight: 600;
       cursor: pointer;
       transition: opacity 0.15s;
+      align-self: flex-end;
     }
     .btn:hover:not(:disabled) { opacity: 0.85; }
     .btn:disabled { opacity: 0.4; cursor: default; }
     .btn-primary { background: var(--green); color: var(--dark); }
-    .btn-outline { background: transparent; color: var(--green); border: 2px solid var(--green); }
+    .btn-outline  { background: transparent; color: var(--green); border: 2px solid var(--green); align-self: center; }
+
+    /* ── step indicator ── */
+    .steps {
+      display: flex;
+      gap: 0.4rem;
+    }
+    .step-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: background 0.2s;
+    }
+    .step-dot.active { background: var(--green); }
+
+    /* ── error ── */
     .error-box {
       background: #2d0f0f; border: 1px solid #8b1a1a; border-radius: 8px;
-      padding: 1rem 1.25rem; color: #ffb3b3; font-size: 0.9rem; width: 100%; white-space: pre-wrap;
+      padding: 1rem 1.25rem; color: #ffb3b3; font-size: 0.9rem; width: 100%;
     }
 
     /* ── exam screen ── */
@@ -70,29 +111,68 @@
       justify-content: flex-start;
       gap: 0;
     }
-    .exam-header {
+    .exam-chrome {
       width: 100%;
-      background: var(--card);
-      border-bottom: 1px solid #1e4a5c;
-      padding: 0.75rem 1.5rem;
+      background: var(--mid);
+      border-bottom: 2px solid var(--green);
+      padding: 0.6rem 1.25rem;
       display: flex;
       align-items: center;
-      gap: 1rem;
+      gap: 0.75rem;
       flex-shrink: 0;
     }
-    .exam-header .logo-small { font-size: 1.4rem; }
-    .exam-header h2 { font-size: 1rem; color: var(--green); }
-    .exam-header p { font-size: 0.8rem; color: var(--muted); margin-left: auto; }
+    .exam-chrome .game-brand { font-weight: 700; color: var(--green); font-size: 0.95rem; }
+    .exam-chrome .divider { color: var(--border); }
+    .exam-chrome .iframe-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.2rem 0.6rem;
+      letter-spacing: 0.04em;
+    }
+    .exam-chrome .status-pill {
+      margin-left: auto;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 0.2rem 0.7rem;
+      border-radius: 999px;
+      background: #0a3d20;
+      color: var(--green);
+      border: 1px solid var(--green);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .pulse {
+      width: 7px; height: 7px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+    .iframe-wrapper {
+      flex: 1;
+      width: 100%;
+      position: relative;
+      border: 3px solid var(--green);
+      border-top: none;
+    }
     #exam-iframe {
       width: 100%;
-      flex: 1;
+      height: 100%;
       border: none;
+      display: block;
     }
 
     /* ── loading ── */
     .spinner {
       width: 40px; height: 40px;
-      border: 4px solid #1e4a5c;
+      border: 4px solid var(--border);
       border-top-color: var(--green);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
@@ -100,13 +180,13 @@
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── result ── */
-    .result-icon { font-size: 4rem; }
-    .result-title { font-size: 2rem; font-weight: 700; }
+    .result-icon  { font-size: 4rem; }
+    .result-title { font-size: 2rem; font-weight: 700; text-align: center; }
     .result-title.pass { color: var(--green); }
     .result-title.fail { color: #f85149; }
     .score-box {
       background: var(--card);
-      border: 1px solid #1e4a5c;
+      border: 1px solid var(--border);
       border-radius: 12px;
       padding: 1.5rem 3rem;
       text-align: center;
@@ -117,11 +197,11 @@
 </head>
 <body>
 
-<!-- ── START ── -->
+<!-- ── 1. REGISTER ── -->
 <div id="screen-start" class="screen active">
   <div class="logo">🍃</div>
   <h1>MongoDB Quest</h1>
-  <p class="subtitle">Complete the skill check to earn your badge.<br>Your responses are recorded in Scorpion.</p>
+  <p>A gamified skill check adventure.<br>Your score is recorded in Scorpion.</p>
 
   <div class="form-row">
     <div class="form-group">
@@ -139,26 +219,65 @@
   </div>
 
   <div id="start-error" class="error-box" style="display:none"></div>
-  <button class="btn btn-primary" id="start-btn" onclick="startGame()">Start Quest →</button>
+  <button class="btn btn-primary" id="start-btn" onclick="goToStory()">Begin →</button>
 </div>
 
-<!-- ── LOADING ── -->
+<!-- ── 2. STORY STEP 1 ── -->
+<div id="screen-story-1" class="screen">
+  <div class="steps">
+    <div class="step-dot active"></div>
+    <div class="step-dot"></div>
+    <div class="step-dot"></div>
+  </div>
+  <h2>Your Mission</h2>
+  <div class="story-box">
+    <div class="speaker">🧑‍💼 Manager</div>
+    <p>Welcome to the team! Before you can push to production, we need to verify your MongoDB skills.</p>
+    <br>
+    <p>We use <strong style="color:var(--green)">Scorpion</strong> to run our skill assessments — it's the engine behind the scenes that delivers the exam, tracks your responses, and computes your score.</p>
+  </div>
+  <button class="btn btn-primary" onclick="showScreen('screen-story-2')">Next →</button>
+</div>
+
+<!-- ── 3. STORY STEP 2 ── -->
+<div id="screen-story-2" class="screen">
+  <div class="steps">
+    <div class="step-dot"></div>
+    <div class="step-dot active"></div>
+    <div class="step-dot"></div>
+  </div>
+  <h2>How It Works</h2>
+  <div class="story-box">
+    <div class="speaker">🤖 System</div>
+    <p>This game created a <strong style="color:var(--green)">Scorpion delivery</strong> for you using the API — no manual setup needed.</p>
+    <br>
+    <p>When you click <em>"Test it out"</em>, the Scorpion exam will load directly inside this app. Once you submit, the game will pick up your result and show you whether you passed or failed.</p>
+    <br>
+    <p style="color:var(--muted);font-size:0.85rem">The green border you'll see is the iframe boundary — it makes the integration visible for this demo.</p>
+  </div>
+  <button class="btn btn-primary" onclick="launchExam()">Test it out 🚀</button>
+</div>
+
+<!-- ── 4. LOADING ── -->
 <div id="screen-loading" class="screen">
   <div class="spinner"></div>
-  <p id="loading-msg" style="color:var(--muted)">Summoning your quest…</p>
+  <p id="loading-msg">Creating your delivery…</p>
 </div>
 
-<!-- ── EXAM (Scorpion in iframe) ── -->
+<!-- ── 5. EXAM ── -->
 <div id="screen-exam" class="screen">
-  <div class="exam-header">
-    <span class="logo-small">🍃</span>
-    <h2>MongoDB Quest</h2>
-    <p id="exam-status">Exam in progress…</p>
+  <div class="exam-chrome">
+    <span class="game-brand">🍃 MongoDB Quest</span>
+    <span class="divider">|</span>
+    <span class="iframe-label">SCORPION IFRAME</span>
+    <span class="status-pill"><span class="pulse"></span> Live delivery</span>
   </div>
-  <iframe id="exam-iframe" title="Skill check"></iframe>
+  <div class="iframe-wrapper">
+    <iframe id="exam-iframe" title="Scorpion skill check"></iframe>
+  </div>
 </div>
 
-<!-- ── RESULT ── -->
+<!-- ── 6. RESULT ── -->
 <div id="screen-result" class="screen">
   <div class="result-icon" id="result-icon"></div>
   <div class="result-title" id="result-title"></div>
@@ -171,21 +290,33 @@
 </div>
 
 <script>
-  let pollTimer = null;
+  let deliveryId = null;
+  let pollTimer  = null;
+  let launchUrl  = null;
 
-  function show(id) {
+  function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
   }
 
-  async function startGame() {
+  function goToStory() {
+    const email = document.getElementById('email').value.trim();
+    if (!email) {
+      const box = document.getElementById('start-error');
+      box.style.display = 'block';
+      box.textContent = 'Please enter your email to continue.';
+      return;
+    }
+    document.getElementById('start-error').style.display = 'none';
+    showScreen('screen-story-1');
+  }
+
+  async function launchExam() {
+    showScreen('screen-loading');
+
     const firstName = document.getElementById('firstName').value.trim() || 'Player';
     const lastName  = document.getElementById('lastName').value.trim()  || 'One';
-    const email     = document.getElementById('email').value.trim()     || 'player@example.com';
-
-    document.getElementById('start-error').style.display = 'none';
-    document.getElementById('start-btn').disabled = true;
-    show('screen-loading');
+    const email     = document.getElementById('email').value.trim();
 
     const resp = await fetch('/api/start', {
       method: 'POST',
@@ -195,25 +326,22 @@
 
     if (!resp.ok) {
       const err = await resp.json().catch(() => ({}));
-      show('screen-start');
-      document.getElementById('start-btn').disabled = false;
-      const box = document.getElementById('start-error');
-      box.style.display = 'block';
-      box.textContent = `Error ${resp.status}: ${err.error || 'Unknown error'}\n${err.hint || ''}`;
+      showScreen('screen-story-2');
+      alert(`Error: ${err.error || resp.status}`);
       return;
     }
 
-    const { deliveryId, launchUrl } = await resp.json();
+    const data = await resp.json();
+    deliveryId = data.deliveryId;
+    launchUrl  = data.launchUrl;
 
-    // Load Scorpion in the iframe
     document.getElementById('exam-iframe').src = launchUrl;
-    show('screen-exam');
+    showScreen('screen-exam');
 
-    // Start polling for completion
-    pollTimer = setInterval(() => checkResult(deliveryId), 3000);
+    pollTimer = setInterval(() => checkResult(), 3000);
   }
 
-  async function checkResult(deliveryId) {
+  async function checkResult() {
     const resp = await fetch(`/api/result/${deliveryId}`);
     const data = await resp.json();
 
@@ -237,7 +365,7 @@
       ? 'Your responses have been recorded in Scorpion. Badge incoming!'
       : 'Your responses have been recorded. Review the material and try again.';
 
-    show('screen-result');
+    showScreen('screen-result');
   }
 </script>
 </body>
