@@ -52,9 +52,36 @@
 
   <div id="status"></div>
 
-  <script src="https://unpkg.com/sei-messenger@1.2.1/dist/SeiMessenger.min.js"></script>
   <script>
-    // Use origin query param if provided, otherwise '*' works for any Scorpion domain
+    class SeiMessenger {
+      constructor(origin, responseId) {
+        this.seiOrigin = origin || 'https://scorpion.caveon.com';
+        this.seiQueryParamName = 'response_id';
+        this.maxPingAttempts = 10;
+        this.numPingAttempts = 0;
+        this.seiWindow = window.parent;
+        this.responseId = responseId || this.getSeiResponseId();
+        window.addEventListener('message', (evt) => {
+          if (evt.data === 'pong') this.seiWindow = evt.source;
+        });
+        this.pingTargetWindow(window);
+      }
+      getSeiResponseId() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get(this.seiQueryParamName) || 'no query param found';
+      }
+      pingTargetWindow(win) {
+        win.parent.postMessage({ seiPing: true }, this.seiOrigin);
+        if (this.numPingAttempts < this.maxPingAttempts) {
+          this.numPingAttempts++;
+          this.pingTargetWindow(win.parent);
+        }
+      }
+      sendMessage(message = '', meta = null) {
+        this.seiWindow.postMessage({ message, response_id: this.responseId, meta }, this.seiOrigin);
+      }
+    }
+
     const seiOrigin = new URLSearchParams(location.search).get('sei_origin') || '*';
     const messenger = new SeiMessenger(seiOrigin);
     let answered = false;
