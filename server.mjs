@@ -78,7 +78,7 @@ app.post('/api/start', async (req, res) => {
 
   const { delivery_id, launch_token } = delivery;
   const returnUrl = encodeURIComponent(`${RETURN_URL}?delivery_id=${delivery_id}`);
-  const launchUrl = `${SEI_URL}/take?token=${launch_token}&redirect_url=${returnUrl}`;
+  const launchUrl = `${SEI_URL}/take?launch_token=${launch_token}&redirect_url=${returnUrl}`;
 
   console.log(`Created delivery ${delivery_id} for ${email}`);
   res.json({ deliveryId: delivery_id, launchUrl });
