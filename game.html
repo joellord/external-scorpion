@@ -166,16 +166,16 @@
   <div class="form-row">
     <div class="form-group">
       <label for="firstName">First name</label>
-      <input id="firstName" type="text" placeholder="Ada" value="" />
+      <input id="firstName" type="text" placeholder="Ada" />
     </div>
     <div class="form-group">
       <label for="lastName">Last name</label>
-      <input id="lastName" type="text" placeholder="Lovelace" value="" />
+      <input id="lastName" type="text" placeholder="Lovelace" />
     </div>
   </div>
   <div class="form-group" style="width:100%">
     <label for="email">Email</label>
-    <input id="email" type="email" placeholder="ada@example.com" value="" />
+    <input id="email" type="email" placeholder="ada@example.com" />
   </div>
 
   <div id="start-error" class="error-box" style="display:none"></div>
@@ -185,21 +185,7 @@
 <!-- ── LOADING SCREEN ── -->
 <div id="screen-loading" class="screen">
   <div class="spinner"></div>
-  <p style="color:var(--muted)">Summoning your quest…</p>
-</div>
-
-<!-- ── QUESTION SCREEN ── -->
-<div id="screen-question" class="screen">
-  <div style="width:100%">
-    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
-  </div>
-  <p class="progress-label" id="progress-label"></p>
-
-  <div class="question-card">
-    <div class="stem" id="q-stem"></div>
-    <div class="options" id="q-options"></div>
-  </div>
-  <button class="btn btn-primary" id="submit-answer" disabled onclick="submitAnswer()">Confirm Answer →</button>
+  <p id="loading-msg" style="color:var(--muted)">Summoning your quest…</p>
 </div>
 
 <!-- ── RESULT SCREEN ── -->
@@ -208,33 +194,16 @@
   <div class="result-title" id="result-title"></div>
   <div class="score-box">
     <div class="score-value" id="result-score">—</div>
-    <div class="score-label">Score</div>
+    <div class="score-label" id="score-label">Score</div>
   </div>
   <p id="result-message" style="color:var(--muted);text-align:center"></p>
-  <button class="btn btn-outline" onclick="location.reload()">Play Again</button>
+  <button class="btn btn-outline" onclick="location.href='/game.html'">Play Again</button>
 </div>
 
 <script>
-  let deliveryId = null;
-  let questions  = [];
-  let currentIdx = 0;
-  let selectedAnswer = null;
-
   function show(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(screenId).classList.add('active');
-  }
-
-  // Render inline code blocks from markdown backtick syntax
-  function renderMarkdown(text) {
-    return text
-      .replace(/```[\w]*\n?([\s\S]*?)```/g, (_, code) => `<pre style="background:#0a1f2d;padding:0.75rem;border-radius:6px;overflow:auto;font-size:0.85rem;color:#e8f1f2;margin:0.5rem 0">${escHtml(code.trim())}</pre>`)
-      .replace(/`([^`]+)`/g, (_, code) => `<code>${escHtml(code)}</code>`)
-      .replace(/\n/g, '<br>');
-  }
-
-  function escHtml(s) {
-    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
   async function startGame() {
@@ -262,79 +231,26 @@
       return;
     }
 
-    const data = await resp.json();
-    deliveryId = data.deliveryId;
-    questions  = data.questions;
-    currentIdx = 0;
-
-    showQuestion();
+    const { deliveryId, launchUrl } = await resp.json();
+    // Store delivery ID so the result page can poll for it on return
+    sessionStorage.setItem('deliveryId', deliveryId);
+    // Hand off to Scorpion — external items will run the game UI
+    window.location.href = launchUrl;
   }
 
-  function showQuestion() {
-    if (currentIdx >= questions.length) {
-      return pollResult();
-    }
+  // ── Result polling (runs when returning from Scorpion) ──────────────────
+  const deliveryId = new URLSearchParams(location.search).get('delivery_id')
+    || sessionStorage.getItem('deliveryId');
 
-    const q = questions[currentIdx];
-    selectedAnswer = null;
-    document.getElementById('submit-answer').disabled = true;
-
-    const pct = Math.round((currentIdx / questions.length) * 100);
-    document.getElementById('progress-fill').style.width = pct + '%';
-    document.getElementById('progress-label').textContent =
-      `Question ${currentIdx + 1} of ${questions.length}`;
-
-    document.getElementById('q-stem').innerHTML = renderMarkdown(q.stem);
-
-    const optionsEl = document.getElementById('q-options');
-    optionsEl.innerHTML = '';
-    q.options.forEach((opt, i) => {
-      const btn = document.createElement('button');
-      btn.className = 'option-btn';
-      btn.innerHTML = renderMarkdown(opt);
-      btn.onclick = () => selectOption(i);
-      optionsEl.appendChild(btn);
-    });
-
-    show('screen-question');
+  if (deliveryId && location.search.includes('delivery_id')) {
+    sessionStorage.removeItem('deliveryId');
+    show('screen-loading');
+    document.getElementById('loading-msg').textContent = 'Calculating your results…';
+    pollResult(deliveryId);
   }
 
-  function selectOption(idx) {
-    selectedAnswer = idx;
-    document.querySelectorAll('.option-btn').forEach((b, i) => {
-      b.classList.toggle('selected', i === idx);
-    });
-    document.getElementById('submit-answer').disabled = false;
-  }
-
-  async function submitAnswer() {
-    if (selectedAnswer == null) return;
-
-    document.getElementById('submit-answer').disabled = true;
-    document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
-
-    const q = questions[currentIdx];
-    // Send the option text as the response (Scorpion expects the response value)
-    await fetch('/api/answer', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ responseId: q.responseId, answer: String(selectedAnswer) }),
-    });
-
-    currentIdx++;
-    if (currentIdx < questions.length) {
-      showQuestion();
-    } else {
-      show('screen-loading');
-      document.querySelector('#screen-loading p').textContent = 'Calculating your results…';
-      // Give Scorpion a moment to score
-      await new Promise(r => setTimeout(r, 3000));
-      pollResult();
-    }
-  }
-
-  async function pollResult(attempts = 0) {
-    if (attempts > 10) {
+  async function pollResult(id, attempts = 0) {
+    if (attempts > 15) {
       show('screen-result');
       document.getElementById('result-icon').textContent = '⏳';
       document.getElementById('result-title').textContent = 'Results Pending';
@@ -343,30 +259,28 @@
       return;
     }
 
-    const resp = await fetch(`/api/result/${deliveryId}`);
+    const resp = await fetch(`/api/result/${id}`);
     const data = await resp.json();
 
     if (data.status === 'completed' || data.passed !== null) {
       showResult(data);
     } else {
       await new Promise(r => setTimeout(r, 2000));
-      pollResult(attempts + 1);
+      pollResult(id, attempts + 1);
     }
   }
 
   function showResult(data) {
     const passed = data.passed;
-    document.getElementById('result-icon').textContent  = passed ? '🏆' : '📚';
+    document.getElementById('result-icon').textContent = passed ? '🏆' : '📚';
     const titleEl = document.getElementById('result-title');
     titleEl.textContent = passed ? 'Quest Complete!' : 'Keep Practicing';
     titleEl.className = 'result-title ' + (passed ? 'pass' : 'fail');
 
-    const score = data.score;
     const [lo, hi] = data.scoreScale || [0, 100];
     document.getElementById('result-score').textContent =
-      score != null ? `${Math.round(score)}` : '—';
-    document.querySelector('.score-label').textContent = `Score (${lo}–${hi})`;
-
+      data.score != null ? Math.round(data.score) : '—';
+    document.getElementById('score-label').textContent = `Score (${lo}–${hi})`;
     document.getElementById('result-message').textContent = passed
       ? 'Your responses have been recorded in Scorpion. Badge incoming!'
       : 'Your responses have been recorded. Review the material and try again.';
