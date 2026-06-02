@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Scorpion Integration Harness (local test)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #eee; padding: 1.5rem; }
+    h1 { font-size: 1.3rem; margin-bottom: 0.25rem; }
+    p.sub { font-size: 0.85rem; color: #aaa; margin-bottom: 1.5rem; }
+    .controls { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+    button {
+      padding: 0.5rem 1.25rem;
+      background: #4a90d9;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    button:hover { background: #357abd; }
+    button.active { background: #28a745; }
+    iframe {
+      width: 100%;
+      height: 480px;
+      border: 2px solid #4a90d9;
+      border-radius: 8px;
+      background: #fff;
+    }
+    #log {
+      margin-top: 1rem;
+      background: #0d0d1a;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      font-family: monospace;
+      font-size: 0.85rem;
+      min-height: 80px;
+      white-space: pre-wrap;
+      color: #7effa0;
+    }
+    .label { font-size: 0.75rem; color: #888; margin-top: 1rem; margin-bottom: 0.25rem; }
+  </style>
+</head>
+<body>
+  <h1>Scorpion External Item Harness</h1>
+  <p class="sub">Simulates a Scorpion delivery. Loads each item in an iframe with a fake <code>response_id</code> and listens for postMessage responses.</p>
+
+  <div class="controls">
+    <button onclick="loadItem('item1.html')" id="btn1">Load Item 1 (Button Click)</button>
+    <button onclick="loadItem('item2.html')" id="btn2">Load Item 2 (Dropdown)</button>
+    <button onclick="clearLog()">Clear Log</button>
+  </div>
+
+  <iframe id="item-frame" src="about:blank"></iframe>
+
+  <div class="label">Message log (what Scorpion would receive):</div>
+  <div id="log">— waiting for item to send a response —</div>
+
+  <script>
+    // Fake response_id that would normally come from Scorpion
+    const FAKE_RESPONSE_ID = 'test-response-' + Math.random().toString(36).slice(2, 8);
+
+    function loadItem(page) {
+      const frame = document.getElementById('item-frame');
+      frame.src = `${page}?response_id=${FAKE_RESPONSE_ID}`;
+      log(`[harness] Loaded ${page} with response_id=${FAKE_RESPONSE_ID}`);
+    }
+
+    // Respond to the sei-messenger ping so it can find this window
+    window.addEventListener('message', (evt) => {
+      if (evt.data && evt.data.seiPing) {
+        evt.source.postMessage('pong', evt.origin || '*');
+        return;
+      }
+      if (evt.data && evt.data.response_id) {
+        const { message, response_id, meta } = evt.data;
+        log(`[scorpion] Received response\n  response_id : ${response_id}\n  message     : ${JSON.stringify(message)}\n  meta        : ${JSON.stringify(meta)}`);
+      }
+    });
+
+    function log(text) {
+      const el = document.getElementById('log');
+      el.textContent += '\n' + text;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function clearLog() {
+      document.getElementById('log').textContent = '— log cleared —';
+    }
+  </script>
+</body>
+</html>

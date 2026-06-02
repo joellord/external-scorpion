@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Challenge 2 – Pick an Answer</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: #f5f7fa;
+      padding: 2rem;
+    }
+    h1 { font-size: 1.4rem; margin-bottom: 0.5rem; color: #1a1a2e; }
+    p  { color: #555; margin-bottom: 1.5rem; font-size: 0.95rem; }
+    select {
+      padding: 0.6rem 1rem;
+      font-size: 1rem;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      min-width: 200px;
+    }
+    select:focus { outline: none; border-color: #4a90d9; }
+    #submit-btn {
+      margin-top: 1.25rem;
+      padding: 0.7rem 2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      background: #4a90d9;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    #submit-btn:hover:not(:disabled) { background: #357abd; }
+    #submit-btn:disabled { background: #aaa; cursor: default; }
+    #status {
+      margin-top: 1.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      min-height: 1.5rem;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <h1>Challenge 2 – Dropdown</h1>
+  <p>What is the capital of France?</p>
+
+  <select id="answer-select">
+    <option value="">-- Select an answer --</option>
+    <option value="London">London</option>
+    <option value="Berlin">Berlin</option>
+    <option value="Paris">Paris</option>
+    <option value="Madrid">Madrid</option>
+  </select>
+
+  <button id="submit-btn" onclick="submitAnswer()">Submit Answer</button>
+  <div id="status"></div>
+
+  <script src="https://unpkg.com/sei-messenger@1.2.1/dist/SeiMessenger.min.js"></script>
+  <script>
+    const messenger = new SeiMessenger();
+
+    function submitAnswer() {
+      const select = document.getElementById('answer-select');
+      const chosen = select.value;
+
+      if (!chosen) {
+        document.getElementById('status').textContent = 'Please select an answer first.';
+        return;
+      }
+
+      const correct = chosen === 'Paris';
+      document.getElementById('status').textContent = correct
+        ? '✓ Correct! Sending response…'
+        : `✗ "${chosen}" is wrong. Sending response…`;
+
+      select.disabled = true;
+      document.getElementById('submit-btn').disabled = true;
+
+      // Send the candidate's response to Scorpion
+      messenger.sendMessage(chosen, { item: 'dropdown', correct });
+    }
+  </script>
+</body>
+</html>
