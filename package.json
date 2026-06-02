@@ -1,0 +1,28 @@
+{
+  "name": "external-scorpion",
+  "version": "1.0.0",
+  "description": "Two trivial external items demonstrating the Scorpion/SEI integration via `sei-messenger`.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.mjs",
+    "game": "node server.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joellord/external-scorpion.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/joellord/external-scorpion/issues"
+  },
+  "homepage": "https://github.com/joellord/external-scorpion#readme",
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "node-fetch": "^3.3.2"
+  }
+}

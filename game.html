@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MongoDB Quest – Skill Check</title>
+  <style>
+    :root {
+      --green: #00ed64;
+      --dark:  #001e2b;
+      --mid:   #023430;
+      --card:  #0f2b3d;
+      --text:  #e8f1f2;
+      --muted: #7a9eb1;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: var(--dark);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    /* ── screens ── */
+    .screen { display: none; flex-direction: column; align-items: center; gap: 1.5rem; max-width: 720px; width: 100%; }
+    .screen.active { display: flex; }
+
+    /* ── start screen ── */
+    .logo { font-size: 3rem; }
+    h1 { font-size: 2rem; color: var(--green); text-align: center; }
+    .subtitle { color: var(--muted); text-align: center; font-size: 1rem; }
+    .form-group { display: flex; flex-direction: column; gap: 0.4rem; width: 100%; }
+    .form-group label { font-size: 0.85rem; color: var(--muted); }
+    .form-group input {
+      padding: 0.65rem 1rem;
+      border-radius: 6px;
+      border: 1px solid #1e4a5c;
+      background: var(--card);
+      color: var(--text);
+      font-size: 1rem;
+    }
+    .form-row { display: flex; gap: 1rem; width: 100%; }
+    .form-row .form-group { flex: 1; }
+
+    /* ── buttons ── */
+    .btn {
+      padding: 0.75rem 2rem;
+      border-radius: 8px;
+      border: none;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn:hover:not(:disabled) { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: default; }
+    .btn-primary { background: var(--green); color: var(--dark); }
+    .btn-outline { background: transparent; color: var(--green); border: 2px solid var(--green); }
+
+    /* ── question screen ── */
+    .progress-bar {
+      width: 100%;
+      height: 6px;
+      background: var(--card);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .progress-fill { height: 100%; background: var(--green); transition: width 0.4s; }
+    .progress-label { font-size: 0.8rem; color: var(--muted); align-self: flex-end; }
+
+    .question-card {
+      background: var(--card);
+      border: 1px solid #1e4a5c;
+      border-radius: 12px;
+      padding: 1.75rem;
+      width: 100%;
+    }
+    .question-card .stem {
+      font-size: 1rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      margin-bottom: 1.5rem;
+      color: var(--text);
+    }
+    /* render inline code blocks from Scorpion markdown */
+    .question-card .stem code {
+      background: #0a1f2d;
+      padding: 0.1em 0.4em;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.9em;
+    }
+    .options { display: flex; flex-direction: column; gap: 0.75rem; }
+    .option-btn {
+      width: 100%;
+      text-align: left;
+      padding: 0.85rem 1.1rem;
+      background: var(--mid);
+      border: 2px solid transparent;
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      white-space: pre-wrap;
+      font-family: inherit;
+    }
+    .option-btn:hover:not(:disabled) { border-color: var(--green); }
+    .option-btn.selected { border-color: var(--green); background: #012e1f; }
+    .option-btn:disabled { cursor: default; opacity: 0.7; }
+
+    #submit-answer {
+      align-self: flex-end;
+      margin-top: 0.5rem;
+    }
+
+    /* ── result screen ── */
+    .result-icon { font-size: 4rem; }
+    .result-title { font-size: 2rem; font-weight: 700; }
+    .result-title.pass { color: var(--green); }
+    .result-title.fail { color: #f85149; }
+    .score-box {
+      background: var(--card);
+      border: 1px solid #1e4a5c;
+      border-radius: 12px;
+      padding: 1.5rem 3rem;
+      text-align: center;
+    }
+    .score-value { font-size: 3rem; font-weight: 700; color: var(--green); }
+    .score-label { color: var(--muted); font-size: 0.9rem; margin-top: 0.25rem; }
+
+    /* ── loading / error ── */
+    .spinner {
+      width: 40px; height: 40px;
+      border: 4px solid #1e4a5c;
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .error-box {
+      background: #2d0f0f;
+      border: 1px solid #8b1a1a;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      color: #ffb3b3;
+      font-size: 0.9rem;
+      width: 100%;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── START SCREEN ── -->
+<div id="screen-start" class="screen active">
+  <div class="logo">🍃</div>
+  <h1>MongoDB Quest</h1>
+  <p class="subtitle">Answer the skill check questions to earn your badge.<br>Your responses are recorded in Scorpion.</p>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label for="firstName">First name</label>
+      <input id="firstName" type="text" placeholder="Ada" value="" />
+    </div>
+    <div class="form-group">
+      <label for="lastName">Last name</label>
+      <input id="lastName" type="text" placeholder="Lovelace" value="" />
+    </div>
+  </div>
+  <div class="form-group" style="width:100%">
+    <label for="email">Email</label>
+    <input id="email" type="email" placeholder="ada@example.com" value="" />
+  </div>
+
+  <div id="start-error" class="error-box" style="display:none"></div>
+  <button class="btn btn-primary" id="start-btn" onclick="startGame()">Start Quest →</button>
+</div>
+
+<!-- ── LOADING SCREEN ── -->
+<div id="screen-loading" class="screen">
+  <div class="spinner"></div>
+  <p style="color:var(--muted)">Summoning your quest…</p>
+</div>
+
+<!-- ── QUESTION SCREEN ── -->
+<div id="screen-question" class="screen">
+  <div style="width:100%">
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+  <p class="progress-label" id="progress-label"></p>
+
+  <div class="question-card">
+    <div class="stem" id="q-stem"></div>
+    <div class="options" id="q-options"></div>
+  </div>
+  <button class="btn btn-primary" id="submit-answer" disabled onclick="submitAnswer()">Confirm Answer →</button>
+</div>
+
+<!-- ── RESULT SCREEN ── -->
+<div id="screen-result" class="screen">
+  <div class="result-icon" id="result-icon"></div>
+  <div class="result-title" id="result-title"></div>
+  <div class="score-box">
+    <div class="score-value" id="result-score">—</div>
+    <div class="score-label">Score</div>
+  </div>
+  <p id="result-message" style="color:var(--muted);text-align:center"></p>
+  <button class="btn btn-outline" onclick="location.reload()">Play Again</button>
+</div>
+
+<script>
+  let deliveryId = null;
+  let questions  = [];
+  let currentIdx = 0;
+  let selectedAnswer = null;
+
+  function show(screenId) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(screenId).classList.add('active');
+  }
+
+  // Render inline code blocks from markdown backtick syntax
+  function renderMarkdown(text) {
+    return text
+      .replace(/```[\w]*\n?([\s\S]*?)```/g, (_, code) => `<pre style="background:#0a1f2d;padding:0.75rem;border-radius:6px;overflow:auto;font-size:0.85rem;color:#e8f1f2;margin:0.5rem 0">${escHtml(code.trim())}</pre>`)
+      .replace(/`([^`]+)`/g, (_, code) => `<code>${escHtml(code)}</code>`)
+      .replace(/\n/g, '<br>');
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  async function startGame() {
+    const firstName = document.getElementById('firstName').value.trim() || 'Player';
+    const lastName  = document.getElementById('lastName').value.trim()  || 'One';
+    const email     = document.getElementById('email').value.trim()     || 'player@example.com';
+
+    document.getElementById('start-error').style.display = 'none';
+    document.getElementById('start-btn').disabled = true;
+    show('screen-loading');
+
+    const resp = await fetch('/api/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ firstName, lastName, email }),
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      show('screen-start');
+      document.getElementById('start-btn').disabled = false;
+      const box = document.getElementById('start-error');
+      box.style.display = 'block';
+      box.textContent = `Error ${resp.status}: ${err.error || 'Unknown error'}\n${err.hint || ''}\n${JSON.stringify(err.detail || '', null, 2)}`;
+      return;
+    }
+
+    const data = await resp.json();
+    deliveryId = data.deliveryId;
+    questions  = data.questions;
+    currentIdx = 0;
+
+    showQuestion();
+  }
+
+  function showQuestion() {
+    if (currentIdx >= questions.length) {
+      return pollResult();
+    }
+
+    const q = questions[currentIdx];
+    selectedAnswer = null;
+    document.getElementById('submit-answer').disabled = true;
+
+    const pct = Math.round((currentIdx / questions.length) * 100);
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-label').textContent =
+      `Question ${currentIdx + 1} of ${questions.length}`;
+
+    document.getElementById('q-stem').innerHTML = renderMarkdown(q.stem);
+
+    const optionsEl = document.getElementById('q-options');
+    optionsEl.innerHTML = '';
+    q.options.forEach((opt, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.innerHTML = renderMarkdown(opt);
+      btn.onclick = () => selectOption(i);
+      optionsEl.appendChild(btn);
+    });
+
+    show('screen-question');
+  }
+
+  function selectOption(idx) {
+    selectedAnswer = idx;
+    document.querySelectorAll('.option-btn').forEach((b, i) => {
+      b.classList.toggle('selected', i === idx);
+    });
+    document.getElementById('submit-answer').disabled = false;
+  }
+
+  async function submitAnswer() {
+    if (selectedAnswer == null) return;
+
+    document.getElementById('submit-answer').disabled = true;
+    document.querySelectorAll('.option-btn').forEach(b => b.disabled = true);
+
+    const q = questions[currentIdx];
+    // Send the option text as the response (Scorpion expects the response value)
+    await fetch('/api/answer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ responseId: q.responseId, answer: String(selectedAnswer) }),
+    });
+
+    currentIdx++;
+    if (currentIdx < questions.length) {
+      showQuestion();
+    } else {
+      show('screen-loading');
+      document.querySelector('#screen-loading p').textContent = 'Calculating your results…';
+      // Give Scorpion a moment to score
+      await new Promise(r => setTimeout(r, 3000));
+      pollResult();
+    }
+  }
+
+  async function pollResult(attempts = 0) {
+    if (attempts > 10) {
+      show('screen-result');
+      document.getElementById('result-icon').textContent = '⏳';
+      document.getElementById('result-title').textContent = 'Results Pending';
+      document.getElementById('result-message').textContent =
+        'Scorpion is still scoring. Check back in Scorpion admin.';
+      return;
+    }
+
+    const resp = await fetch(`/api/result/${deliveryId}`);
+    const data = await resp.json();
+
+    if (data.status === 'completed' || data.passed !== null) {
+      showResult(data);
+    } else {
+      await new Promise(r => setTimeout(r, 2000));
+      pollResult(attempts + 1);
+    }
+  }
+
+  function showResult(data) {
+    const passed = data.passed;
+    document.getElementById('result-icon').textContent  = passed ? '🏆' : '📚';
+    const titleEl = document.getElementById('result-title');
+    titleEl.textContent = passed ? 'Quest Complete!' : 'Keep Practicing';
+    titleEl.className = 'result-title ' + (passed ? 'pass' : 'fail');
+
+    const score = data.score;
+    const [lo, hi] = data.scoreScale || [0, 100];
+    document.getElementById('result-score').textContent =
+      score != null ? `${Math.round(score)}` : '—';
+    document.querySelector('.score-label').textContent = `Score (${lo}–${hi})`;
+
+    document.getElementById('result-message').textContent = passed
+      ? 'Your responses have been recorded in Scorpion. Badge incoming!'
+      : 'Your responses have been recorded. Review the material and try again.';
+
+    show('screen-result');
+  }
+</script>
+</body>
+</html>
