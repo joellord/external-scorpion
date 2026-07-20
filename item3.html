@@ -160,8 +160,9 @@
 
       const claims = b64urlToJson(p);
       const now = Math.floor(Date.now() / 1000);
-      if (claims.exp && now > claims.exp) throw new Error('This token has expired.');
-      if (claims.iat && now - claims.iat > MAX_AGE_SECONDS) throw new Error('This token is too old.');
+      const EXPIRED_MSG = 'This token has expired. Please contact your manager to re-issue the token.';
+      if (claims.exp && now > claims.exp) throw new Error(EXPIRED_MSG);
+      if (claims.iat && now - claims.iat > MAX_AGE_SECONDS) throw new Error(EXPIRED_MSG);
       if (typeof claims.score !== 'number') throw new Error('Token has no score.');
       return claims;
     }
