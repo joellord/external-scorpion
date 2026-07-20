@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Training Validation – Submit Your Score Link</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: #f5f7fa;
+      padding: 2rem;
+    }
+    h1 { font-size: 1.4rem; margin-bottom: 0.5rem; color: #1a1a2e; text-align: center; }
+    p  { color: #555; margin-bottom: 1.5rem; font-size: 0.95rem; text-align: center; max-width: 34rem; }
+    .row { display: flex; gap: 0.5rem; width: 100%; max-width: 34rem; }
+    input {
+      flex: 1;
+      padding: 0.7rem 1rem;
+      font-size: 1rem;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      background: #fff;
+    }
+    input:focus { outline: none; border-color: #4a90d9; }
+    #submit-btn {
+      padding: 0.7rem 1.75rem;
+      font-size: 1rem;
+      font-weight: 600;
+      background: #4a90d9;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    #submit-btn:hover:not(:disabled) { background: #357abd; }
+    #submit-btn:disabled { background: #aaa; cursor: default; }
+    #status {
+      margin-top: 1.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      min-height: 1.5rem;
+      color: #333;
+      text-align: center;
+      max-width: 34rem;
+    }
+    #status.error { color: #dc3545; }
+    #status.ok { color: #28a745; }
+  </style>
+</head>
+<body>
+  <h1>Training Validation</h1>
+  <p>
+    Paste the <strong>score token</strong> the validation workflow generated for you
+    (you'll find it in your GitHub Action run / comment). We'll verify it and record your score.
+  </p>
+
+  <div class="row">
+    <input id="link" type="text" placeholder="eyJhbGciOiJFUzI1Ni...  (paste your score token)" />
+    <button id="submit-btn" onclick="submitLink()">Submit</button>
+  </div>
+
+  <div id="status"></div>
+
+  <script>
+    class SeiMessenger {
+      constructor(origin, responseId) {
+        this.seiOrigin = origin || 'https://scorpion.caveon.com';
+        this.seiQueryParamName = 'response_id';
+        this.maxPingAttempts = 10;
+        this.numPingAttempts = 0;
+        this.seiWindow = window.parent;
+        this.responseId = responseId || this.getSeiResponseId();
+        window.addEventListener('message', (evt) => {
+          if (evt.data === 'pong') this.seiWindow = evt.source;
+        });
+        this.pingTargetWindow(window);
+      }
+      getSeiResponseId() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get(this.seiQueryParamName) || 'no query param found';
+      }
+      pingTargetWindow(win) {
+        win.parent.postMessage({ seiPing: true }, this.seiOrigin);
+        if (this.numPingAttempts < this.maxPingAttempts) {
+          this.numPingAttempts++;
+          this.pingTargetWindow(win.parent);
+        }
+      }
+      sendMessage(message = '', meta = null) {
+        this.seiWindow.postMessage({ message, response_id: this.responseId, meta }, this.seiOrigin);
+      }
+    }
+
+    const seiOrigin = new URLSearchParams(location.search).get('sei_origin') || '*';
+    const messenger = new SeiMessenger(seiOrigin);
+
+    const statusEl = document.getElementById('status');
+    const inputEl = document.getElementById('link');
+    const btnEl = document.getElementById('submit-btn');
+
+    function setStatus(msg, kind) {
+      statusEl.textContent = msg;
+      statusEl.className = kind || '';
+    }
+
+    // ── Signed-token verification ────────────────────────────────────────────
+    // The GitHub Action signs the score with an ES256 PRIVATE key (repo secret).
+    // We only carry the PUBLIC key, which can verify but can NOT forge tokens —
+    // so it is safe to ship in this page. No server, no fetch, no CORS.
+    const PUBLIC_JWK = {
+      kty: 'EC', crv: 'P-256',
+      x: 'cRycA9zZPELeP3UWafv_d2LFcFVCH2b-L-GoeK4XE-E',
+      y: 'e9JqsB3NYRq7nwcSiWMEGI8mDc5PsqGya09IcdCiM6M',
+    };
+
+    // How long a token stays valid after it was issued (anti-reuse of stale runs).
+    const MAX_AGE_SECONDS = 7 * 24 * 60 * 60; // 7 days
+
+    function b64urlToBytes(s) {
+      s = s.replace(/-/g, '+').replace(/_/g, '/');
+      s += '='.repeat((4 - (s.length % 4)) % 4);
+      const bin = atob(s);
+      const out = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+      return out;
+    }
+    function b64urlToJson(s) {
+      return JSON.parse(new TextDecoder().decode(b64urlToBytes(s)));
+    }
+
+    async function verifyToken(token) {
+      const parts = token.trim().split('.');
+      if (parts.length !== 3) throw new Error('That doesn’t look like a valid token.');
+      const [h, p, sig] = parts;
+
+      const header = b64urlToJson(h);
+      if (header.alg !== 'ES256') throw new Error('Unexpected token algorithm.');
+
+      const key = await crypto.subtle.importKey(
+        'jwk', PUBLIC_JWK,
+        { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']
+      );
+      const data = new TextEncoder().encode(`${h}.${p}`);
+      const ok = await crypto.subtle.verify(
+        { name: 'ECDSA', hash: 'SHA-256' }, key, b64urlToBytes(sig), data
+      );
+      if (!ok) throw new Error('Signature check failed — this token was not issued by the workflow.');
+
+      const claims = b64urlToJson(p);
+      const now = Math.floor(Date.now() / 1000);
+      if (claims.exp && now > claims.exp) throw new Error('This token has expired.');
+      if (claims.iat && now - claims.iat > MAX_AGE_SECONDS) throw new Error('This token is too old.');
+      if (typeof claims.score !== 'number') throw new Error('Token has no score.');
+      return claims;
+    }
+
+    async function submitLink() {
+      const raw = inputEl.value;
+      if (!raw.trim()) { setStatus('Please paste your score token first.', 'error'); return; }
+
+      btnEl.disabled = true;
+      inputEl.disabled = true;
+      setStatus('Verifying your token…');
+
+      try {
+        const claims = await verifyToken(raw);
+        const score = claims.score;
+
+        setStatus(`✓ Verified. Score ${score} recorded. Sending…`, 'ok');
+        // The candidate's response is the numeric score. Scorpion can score/grade on it.
+        messenger.sendMessage(String(score), {
+          item: 'github-score',
+          score,
+          learner: claims.learner || null,
+          email: claims.email || null,
+          repo: claims.repo || null,
+        });
+      } catch (err) {
+        setStatus(err.message || 'Could not verify that token.', 'error');
+        btnEl.disabled = false;
+        inputEl.disabled = false;
+      }
+    }
+
+    inputEl.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitLink(); });
+  </script>
+</body>
+</html>
