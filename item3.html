@@ -124,6 +124,10 @@
     // How long a token stays valid after it was issued (anti-reuse of stale runs).
     const MAX_AGE_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
+    // Minimum score to pass. item3 sends "PASS"/"FAIL" as the response string;
+    // set the Scorpion item's correct response to "PASS".
+    const PASS_THRESHOLD = 90;
+
     function b64urlToBytes(s) {
       s = s.replace(/-/g, '+').replace(/_/g, '/');
       s += '='.repeat((4 - (s.length % 4)) % 4);
@@ -174,9 +178,21 @@
         const claims = await verifyToken(raw);
         const score = claims.score;
 
-        setStatus(`✓ Verified. Score ${score} recorded. Sending…`, 'ok');
-        // The candidate's response is the numeric score. Scorpion can score/grade on it.
-        messenger.sendMessage(String(score), {
+        // Scorpion grades on meta.message.correct (see instruqt-scorpion-wrapper
+        // lab.template.html). We only report completion when the learner passes;
+        // a failing score does NOT complete the item.
+        const passed = score >= PASS_THRESHOLD;
+
+        if (!passed) {
+          setStatus(`Verified — score ${score} is below the passing mark of ${PASS_THRESHOLD}.`, 'error');
+          btnEl.disabled = false;
+          inputEl.disabled = false;
+          return;
+        }
+
+        setStatus(`✓ Verified. Score ${score} — passed. Sending…`, 'ok');
+        messenger.sendMessage('completed', {
+          message: { correct: true },
           item: 'github-score',
           score,
           learner: claims.learner || null,
